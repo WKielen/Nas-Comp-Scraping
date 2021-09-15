@@ -1,6 +1,7 @@
 from selenium import webdriver
 import time
 import json
+from selenium.webdriver.support.ui import Select
 
 
 class CompetitionNas:
@@ -11,19 +12,160 @@ class CompetitionNas:
             self.browser = webdriver.Chrome()
             self.browser.set_page_load_timeout(10)
             self.browser.implicitly_wait(5)
+
         except Exception as e:
             raise Exception("Error starting browser: " + str(e))
 
         try:
             self.browser.get("https://midden.nttb.nl/competitie/competitie-via-nas/")
-
+            time.sleep(2)
         except Exception as e:
             raise Exception("Open process failed: " + str(e))
 
-    def choose_competition(self):
-        competitienaam_xpath = '/html/body/table/tbody/tr[2]/td[1]/table[1]/tbody/tr[2]/td[2]'
+    def get_competition_types(self):
+        print('Ophalen competitiegroepem')
+        self.browser.switch_to.frame(0)
+        self.browser.switch_to.frame(0)
+        competitienaam = self.browser.find_element_by_name('cnid')
+        select = Select(competitienaam)
+        select.select_by_index(1)
         time.sleep(1)
-        self.browser.find_element_by_xpath(competitienaam_xpath).click()
+        competitiegroep = self.browser.find_element_by_name('cid')
+        groepen = competitiegroep.find_elements_by_tag_name('option')
+        groepen.pop(0)
+        result = []
+        for groep in groepen:
+            result.append(groep.text)
+
+        print('de groepen zijn: ', *result, sep="\n")
+        # input('competitie groepen opgehaald: enter')
+
+        self.browser.refresh()
+        time.sleep(3)
+        self.browser.switch_to.frame(0)
+        self.browser.switch_to.frame(0)
+        return result
+
+    def get_teams_in_competition_type(self, groep):
+        print('Ophalen poules in groep: ', groep)
+        competitienaam = self.browser.find_element_by_name('cnid')
+        select = Select(competitienaam)
+        select.select_by_index(1)
+        time.sleep(1)
+
+        competitiegroep = self.browser.find_element_by_name('cid')
+        select = Select(competitiegroep)
+        select.select_by_visible_text(groep)
+        time.sleep(1)
+
+        poulefilter = self.browser.find_element_by_name('pf')
+        select = Select(poulefilter)
+        select.select_by_value('1520')
+        time.sleep(1)
+
+        pouleelement = self.browser.find_element_by_name('pid')
+        poules = pouleelement.find_elements_by_tag_name('option')
+        poules.pop(0)
+        result = []
+        for poule in poules:
+            result.append(poule.text)
+
+        print('de teams: ', *result, sep="\n")
+        # input('poules opgehaald groepen opgehaald: enter')
+
+        self.browser.refresh()
+        time.sleep(3)
+        self.browser.switch_to.frame(0)
+        self.browser.switch_to.frame(0)
+
+        return result
+
+
+    def get_programs(self, groep, poule):
+        # try:
+        print('ga nu naar cnid')
+        competitienaam = self.browser.find_element_by_name('cnid')
+        select = Select(competitienaam)
+        select.select_by_index(1)
+        time.sleep(1)
+
+        print('ga nu naar cid')
+        competitiegroep = self.browser.find_element_by_name('cid')
+        select = Select(competitiegroep)
+        select.select_by_visible_text(groep)
+        time.sleep(1)
+
+        print('ga nu naar pf')
+        poulefilter = self.browser.find_element_by_name('pf')
+        select = Select(poulefilter)
+        select.select_by_value('1520')
+        time.sleep(1)
+
+        print('ga nu naar pid')
+        pouleitem = self.browser.find_element_by_name('pid')
+        select = Select(pouleitem)
+        select.select_by_visible_text(poule)
+        # select.select_by_index(1)
+        time.sleep(1)
+
+        print('ga nu naar tekstcontainer')
+        tekstcontainer = self.browser.find_element_by_id('tekstContainer')
+        tekst = tekstcontainer.text
+        # print('tekst', tekst)
+        # input('programma opgehaald: enter1')
+
+        self.browser.find_element_by_link_text("<<< terug").click()
+        self.browser.refresh()
+        time.sleep(3)
+        self.browser.switch_to.frame(0)
+        self.browser.switch_to.frame(0)
+        # input('programma opgehaald: enter2')
+
+        return tekst
+
+        # except Exception as e:
+        #     raise Exception("Error finding dropdown: " + str(e))
+
+    def get_results(self, groep):
+        # try:
+        self.browser.switch_to.frame(0)
+        self.browser.switch_to.frame(0)
+
+        competitienaam = self.browser.find_element_by_name('cnid')
+        select = Select(competitienaam)
+        select.select_by_index(1)
+        time.sleep(1)
+
+        competitiegroep = self.browser.find_element_by_name('cid')
+        select = Select(competitiegroep)
+        select.select_by_visible_text(groep)
+        time.sleep(1)
+
+        weergave = self.browser.find_element_by_name('view')
+        select = Select(weergave)
+        select.select_by_index(3)    # 3 = persoonlijkse resultaten
+        time.sleep(1)
+
+        poulefilter = self.browser.find_element_by_name('pf')
+        select = Select(poulefilter)
+        select.select_by_value('1520')
+        time.sleep(1)
+
+        poule = self.browser.find_element_by_name('pid')
+        select = Select(poule)
+        select.select_by_index(1)
+        time.sleep(1)
+
+        tekstcontainer = self.browser.find_element_by_id('tekstContainer')
+        tekst = tekstcontainer.text
+
+        # self.browser.find_element_by_link_text("<<< terug").click()
+        self.browser.refresh()
+
+        return tekst
+
+        # except Exception as e:
+        #     raise Exception("Error finding dropdown: " + str(e))
 
 
 class Nas:
@@ -204,7 +346,7 @@ class Nas:
         except Exception as e:
             raise Exception("Toevoegen lid in NAS mislukt: " + str(e))
 
-    def __add_missing_entries_to_dict(self, member_dict:dict) -> dict:
+    def __add_missing_entries_to_dict(self, member_dict: dict) -> dict:
         """ Sommige gegevens die nodig zijn om een lid aan NAS toe te voegen zitten niet in onze eigen admin.
         Daarom leiden we ze hier af.
 
